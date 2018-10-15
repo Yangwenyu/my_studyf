@@ -12,7 +12,10 @@ db.init_app(app)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    context = {
+        'questions': Question.query.order_by('create_time desc').all()
+    }
+    return render_template('index.html', **context)
 
 
 @app.route('/login/', methods=['GET', 'POST'])
@@ -51,7 +54,7 @@ def register():
             if password1 != password2:
                 return "两次密码不相等"
             else:
-                user = User(telephone = telephone, username = username, password = password1)
+                user = User(telephone=telephone, username=username, password=password1)
                 db.session.add(user)
                 db.session.commit()
                 # 如果注册成功，跳转登录页面
@@ -79,6 +82,11 @@ def question():
         db.session.add(question)
         db.session.commit()
         return redirect(url_for('index'))
+
+
+@app.route('/detail/<question_id>')
+def detail(question_id):
+    return render_template('detail.html')
 
 
 @app.context_processor
