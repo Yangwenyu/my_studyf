@@ -3,9 +3,34 @@
 {% block title %}详情-{% endblock %}
 
 {% block head %}
+    <style type="text/css">
 
+    </style>
 {% endblock %}
 
 {% block main %}
-
+    <h3 class="page-title">{{ question.title }}</h3>
+    <p class="question-info">
+        <span>作者：{{ question.author.username }}</span>
+        <span>发布时间：{{ question.create_time }}</span>
+    </p>
+    <hr>
+    <p class="question-content">{{ question.content }}</p>
+    <hr>
+    <h4>评论：（0）</h4>
+    <form action="{{ url_for('add_answer') }}" method="post">
+        <div class="form-group">
+            <input name="answer-content" type="text" class="form-control" placeholder="请填写评论">
+            <input type="hidden" name="question-id" value="{{ question.id }}">
+        </div>
+    <div class="form-group" style="text-align: right;">
+        <button class="btn btn-primary">立即评论</button>
+    </div>
+    </form>
+    <ul>
+        {% for answer in question.answers %}
+            <li>{{ answer.content }}</li>
+        {% endfor %}
+        
+    </ul>
 {% endblock %}
