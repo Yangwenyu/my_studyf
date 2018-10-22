@@ -1,9 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, g
 import config
 from models import User, Question, Answer
 from exts import db
 from decorators import login_required
-
+from sqlalchemy import or_
 
 app = Flask(__name__)
 app.config.from_object(config)
@@ -26,7 +26,7 @@ def login():
         telephone = request.form.get('telephone')
         password = request.form.get('password')
         user = User.query.filter(User.telephone == telephone, password == password).first()
-        if user:
+        if user and user.check_password(password):
             session['user_id'] = user.id
             # session 保存时间
             session.permanent = True
@@ -76,12 +76,17 @@ def question():
         title = request.form.get('title')
         content = request.form.get('content')
         question = Question(title=title, content=content)
-        user_id = session.get('user_id')
-        user = User.query.filter(User.id == user_id).first()
-        question.author = user
+        question.author = g.user
         db.session.add(question)
         db.session.commit()
         return redirect(url_for('index'))
+
+
+@app.route('/search/')
+def search():
+    q = request.args.get('q')
+    questions = Question.query.filter(or_(Question.title.contains(q), Question.content.contains(q))).order_by('-create-time')
+    return render_template('index.html', questions = questions)
 
 
 @app.route('/detail/<question_id>')
@@ -96,9 +101,7 @@ def add_answer():
     content = request.form.get('answer-content')
     question_id = request.form.get('question-id')
     answer = Answer(content=content)
-    user_id = session['user_id']
-    user = User.query.filter(User.id == user_id).first()
-    answer.author = user
+    answer.author = g.user
     question = Question.query.filter(Question.id == question_id).first()
     answer.question = question
     db.session.add(answer)
@@ -106,15 +109,20 @@ def add_answer():
     return redirect(url_for('detail', question_id=question_id))
 
 
-@app.context_processor
-def my_context_processor():
+@app.before_request
+def my_before_request():
     user_id = session.get('user_id')
     if user_id:
         user = User.query.filter(User.id == user_id).first()
         if user:
-            return {'user': user}
-    return {}
+            g.user = user
 
+
+@app.context_processor
+def my_context_processor():
+    if hasattr(g, 'user'):
+        return {'user': g.user}
+    return {}
 
 
 if __name__ == '__main__':
